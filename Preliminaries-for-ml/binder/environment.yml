@@ -1,5 +1,5 @@
 channels:
-- defaults
+- default
 dependencies:
 - matplotlib
 - nbconvert
