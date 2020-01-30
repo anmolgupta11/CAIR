@@ -1,4 +1,4 @@
-# Preliminaries-for-ML
+# Preliminaries-for-ML:
 Git and Python Preliminaries for ML.
 
 1. One should install [Anaconda Python 3.7 version](https://www.anaconda.com/distribution/#download-section)
