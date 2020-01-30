@@ -7,7 +7,7 @@ dependencies:
 - pandas
 - scipy
 - seaborn
-- scikit-learn
+- scikit learn
 - tensorflow
 - keras
 - pip:
