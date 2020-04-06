@@ -45,11 +45,10 @@ Batch size is taken as 16, and max epochs = 150. Learning rate of 0.1 is taken.
 
 **Micro F1 score** on overall test dataset is **79.75%** with **Precision = 82.47%** and **recall = 77.2%**.
 
-***For TAGS , the best F1 score came out to be 86.18% for TRIVIAL , with precision = 86.44% and recall = 85.93%. The lowest F1 score came out to be 34.71% for MULTIPLE tags, having precision = 63.64% and recall = 23.68%.***
+**For TAGS , the best F1 score came out to be 86.18% for TRIVIAL , with precision = 86.44% and recall = 85.93%. The lowest F1 score came out to be 34.71% for MULTIPLE tags, having precision = 63.64% and recall = 23.68%.**
 
 ## **Further Improvements**
 
 As it can be seen, that there is no optimisation done and still a pretty high accuracy is reached. I believe that this model will surpass all the existing models on our dataset.
-
 **Further Improvements are much appreciated.**
 
