@@ -1,0 +1,180 @@
+Abstract
+State-of-the-art named entity recognition sys-
+tems rely heavily on hand-crafted features and
+domain-specific knowledge in order to learn
+effectively from the small, supervised training
+corpora that are available. In this paper, we
+introduce two new neural architectures—one
+based on bidirectional LSTMs and conditional
+random fields, and the other that constructs
+and labels segments using a transition-based
+approach inspired by shift-reduce parsers.
+Our models rely on two sources of infor-
+mation about words: character-based word
+representations learned from the supervised
+corpus and unsupervised word representa-
+tions learned from unannotated corpora. Our
+models obtain state-of-the-art performance in
+NER in four languages without resorting to
+any language-specific knowledge or resources
+such as gazetteers. 1
+1
+Introduction
+Named entity recognition (NER) is a challenging
+learning problem. One the one hand, in most lan-
+guages and domains, there is only a very small
+amount of supervised training data available. On the
+other, there are few constraints on the kinds of words
+that can be names, so generalizing from this small
+sample of data is difficult. As a result, carefully con-
+structed orthographic features and language-specific
+knowledge resources, such as gazetteers, are widely
+used for solving this task. Unfortunately, language-
+specific resources and features are costly to de-
+velop in new languages and new domains, making
+NER a challenge to adapt. Unsupervised learning
+1
+The code of the LSTM-CRF and Stack-LSTM NER
+systems are available at https://github.com/
+glample/tagger and https://github.com/clab/
+stack-lstm-ner
+from unannotated corpora offers an alternative strat-
+egy for obtaining better generalization from small
+amounts of supervision. However, even systems
+that have relied extensively on unsupervised fea-
+tures (Collobert et al., 2011; Turian et al., 2010;
+Lin and Wu, 2009; Ando and Zhang, 2005b, in-
+ter alia) have used these to augment, rather than
+replace, hand-engineered features (e.g., knowledge
+about capitalization patterns and character classes in
+a particular language) and specialized knowledge re-
+sources (e.g., gazetteers).
+In this paper, we present neural architectures
+for NER that use no language-specific resources
+or features beyond a small amount of supervised
+training data and unlabeled corpora. Our mod-
+els are designed to capture two intuitions. First,
+since names often consist of multiple tokens, rea-
+soning jointly over tagging decisions for each to-
+ken is important. We compare two models here,
+(i) a bidirectional LSTM with a sequential condi-
+tional random layer above it (LSTM-CRF; §2), and
+(ii) a new model that constructs and labels chunks
+of input sentences using an algorithm inspired by
+transition-based parsing with states represented by
+stack LSTMs (S-LSTM; §3). Second, token-level
+evidence for “being a name” includes both ortho-
+graphic evidence (what does the word being tagged
+as a name look like?) and distributional evidence
+(where does the word being tagged tend to oc-
+cur in a corpus?). To capture orthographic sen-
+sitivity, we use character-based word representa-
+tion model (Ling et al., 2015b) to capture distribu-
+tional sensitivity, we combine these representations
+with distributional representations (Mikolov et al.,
+2013b). Our word representations combine both of
+these, and dropout training is used to encourage the
+model to learn to trust both sources of evidence (§4).
+Experiments in English, Dutch, German, and
+Spanish show that we are able to obtain state-of-the-art NER performance with the LSTM-CRF
+model in Dutch, German, and Spanish, and very
+near the state-of-the-art in English without any
+hand-engineered features or gazetteers (§5). The
+transition-based algorithm likewise surpasses the
+best previously published results in several lan-
+guages, although it performs less well than the
+LSTM-CRF model.
+2
+LSTM-CRF Model
+We provide a brief description of LSTMs and CRFs,
+and present a hybrid tagging architecture. This ar-
+chitecture is similar to the ones presented by Col-
+lobert et al. (2011) and Huang et al. (2015).
+2.1
+LSTM
+Recurrent neural networks (RNNs) are a family
+of neural networks that operate on sequential
+data. They take as input a sequence of vectors
+(x 1 , x 2 , . . . , x n ) and return another sequence
+(h 1 , h 2 , . . . , h n ) that represents some information
+about the sequence at every step in the input.
+Although RNNs can, in theory, learn long depen-
+dencies, in practice they fail to do so and tend to
+be biased towards their most recent inputs in the
+sequence (Bengio et al., 1994). Long Short-term
+Memory Networks (LSTMs) have been designed to
+combat this issue by incorporating a memory-cell
+and have been shown to capture long-range depen-
+dencies. They do so using several gates that control
+the proportion of the input to give to the memory
+cell, and the proportion from the previous state to
+forget (Hochreiter and Schmidhuber, 1997). We use
+the following implementation:
+context of the sentence at every word t. Naturally,
+←
+−
+generating a representation of the right context h t
+as well should add useful information. This can be
+achieved using a second LSTM that reads the same
+sequence in reverse. We will refer to the former as
+the forward LSTM and the latter as the backward
+LSTM. These are two distinct networks with differ-
+ent parameters. This forward and backward LSTM
+pair is referred to as a bidirectional LSTM (Graves
+and Schmidhuber, 2005).
+The representation of a word using this model is
+obtained by concatenating its left and right context
+→
+− ←
+−
+representations, h t = [ h t ; h t ]. These representa-
+tions effectively include a representation of a word
+in context, which is useful for numerous tagging ap-
+plications.
+2.2
+CRF Tagging Models
+A very simple—but surprisingly effective—tagging
+model is to use the h t ’s as features to make indepen-
+dent tagging decisions for each output y t (Ling et
+al., 2015b). Despite this model’s success in simple
+problems like POS tagging, its independent classifi-
+cation decisions are limiting when there are strong
+dependencies across output labels. NER is one such
+task, since the “grammar” that characterizes inter-
+pretable sequences of tags imposes several hard con-
+straints (e.g., I-PER cannot follow B-LOC; see §2.4
+for details) that would be impossible to model with
+independence assumptions.
+Therefore, instead of modeling tagging decisions
+independently, we model them jointly using a con-
+ditional random field (Lafferty et al., 2001). For an
+input sentence
+X = (x 1 , x 2 , . . . , x n ),
+i t = σ(W xi x t + W hi h t−1 + W ci c t−1 + b i )
+c t = (1 − i t )  c t−1 +
+i t  tanh(W xc x t + W hc h t−1 + b c )
+o t = σ(W xo x t + W ho h t−1 + W co c t + b o )
+h t = o t  tanh(c t ),
+where σ is the element-wise sigmoid function, and
+ is the element-wise product.
+For a given sentence (x 1 , x 2 , . . . , x n ) containing
+n words, each represented as a d-dimensional vector,
+→
+−
+an LSTM computes a representation h t of the left
+we consider P to be the matrix of scores output by
+the bidirectional LSTM network. P is of size n × k,
+where k is the number of distinct tags, and P i,j cor-
+responds to the score of the j th tag of the i th word
+in a sentence. For a sequence of predictions
+y = (y 1 , y 2 , . . . , y n ),
+we define its score to be
+s(X, y) =
+n
+X
+i=0
+A y i ,y i+1 +
+n
+X
+i=1
+P i,y i
