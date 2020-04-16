@@ -1,0 +1,35 @@
+# Input script
+
+units real
+dimension 3
+atom_style atomic
+
+# CREATE BOX
+lattice sc 1
+region 1 block 0 40 0 40 0 40
+create_box 1 1
+create_atoms 1 random 512 2 1
+mass 1 2
+
+# POTENTIAL
+pair_style lj/cut 3.0
+pair_coeff 1 1 0.1 0.1
+
+timestep 1
+
+variable nAtoms equal atoms
+variable Nrun equal 500000
+
+minimize 1.0e-4 1.0e-6 100 10000
+
+fix 1 all npt temp 400 400 1000 iso 0.5 0.5 1000
+
+#OUTPUT
+thermo 1000
+thermo_style custom step density
+
+run {$Nrun}
+
+dump 		trj all atom 500 sys_npt.lammpstrj
+write_restart 	restart.sys
+
