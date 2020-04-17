@@ -1,0 +1,41 @@
+# Input script
+
+units lj # real # i.e. reduced units
+dimension 3
+atom_style atomic
+
+# CREATE BOX
+lattice sc 1
+region 1 block 0 40 0 40 0 40
+create_box 1 1
+create_atoms 1 random 512 2 1
+mass 1 1  # mass is always 1 in reduced unit
+
+# POTENTIAL
+pair_style lj/cut 3.0
+pair_coeff 1 1 0.1 1.0 # sigma is always 1.0 and the length unit of the system.
+
+timestep 0.001
+
+variable nAtoms equal atoms
+variable Nrun equal 2000000
+variable Ne equal 10
+variable Nr_rdf equal 0.5*${Nrun}/${Ne}
+
+minimize 1.0e-4 1.0e-6 100 10000
+variable  temp  equal 1.0
+variable tdump equal 1.0
+
+fix 1 all npt temp ${temp} ${temp} ${tdump} iso 1.0 1.0 10.0
+
+compute rdf all rdf 1000 1 1
+fix rdf all ave/time ${Ne} ${Nr_rdf} ${Nrun} c_rdf[*] file system.rdf mode vector
+
+#OUTPUT
+thermo 1000
+thermo_style custom step density
+dump 		trj all atom 500 sys_npt.lammpstrj
+
+run ${Nrun}
+
+write_restart 	restart.sys.final
